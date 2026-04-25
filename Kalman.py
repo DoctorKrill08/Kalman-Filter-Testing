@@ -5,11 +5,15 @@ import matplotlib.pyplot as plt
 class Limelight:
     def __init__(self):
         self.actual = 50
-        self.noise = 10
-        self.sd = self.noise
+        self.sd = 10
+        self.sdEstimate = self.sd
         self.reading = self.actual
+    def setActual(self, actual):
+        self.actual = actual
+        self.sd = actual/5
     def update(self):
-        self.reading = self.noise * 2 * (0.5 - random.random()) + self.actual
+        self.reading = self.sd * 2 * (0.5 - random.random()) + self.actual
+        self.sdEstimate = self.reading / 5
 
 class Kalman:
     def __init__(self): 
@@ -21,11 +25,15 @@ class Kalman:
         self.limelight = Limelight()
 
     def predict(self):
-        d = 3
+        d = 3.5
         ln = self.limelight.reading  
-        self.z = abs(self.pn - ln)/(2 * self.limelight.sd)
+        self.z = abs(self.pn - ln)/(2 * self.limelight.sdEstimate)
+        deltaA = self.area
         self.area = d * pow((NormalDist().cdf(self.z) - 0.5),2)
-        self.d = self.d + self.area
+        deltaA = abs(deltaA - self.area)
+        if (deltaA < 0.34):
+            deltaA = 0
+        self.d = self.d + self.area + deltaA
         print(self.d)
         if self.d < 0:
             self.d = 0
@@ -33,7 +41,7 @@ class Kalman:
             self.d = 1
     
     def update(self):
-        p = 0.5
+        p = .5
         LL = self.limelight
         self.pn = (self.pn * (1-self.d)) + (LL.reading * self.d)
         self.d = ((1 - self.d) * abs(self.d)) * p
@@ -45,7 +53,7 @@ p = []
 l = []
 
 kalman = Kalman()
-for i in range (0,50):
+for i in range (0,100):
     print("------")
     print(i)
     kalman.predict()
@@ -59,8 +67,12 @@ for i in range (0,50):
     print(f"Limelight reading {kalman.limelight.reading}")
     print(f"Pinpoint Estimate {kalman.pn}")
     if i == 30:
-        kalman.limelight.actual = 150
+        kalman.limelight.setActual(130)
         print("TELEPORT!!!")
-
-# Plot and display
+    if i == 60:
+        kalman.limelight.setActual(30)
+        print("TELEPORT!!!")
+    if i == 80:
+        kalman.limelight.setActual(90)
+        print("TELEPORT!!!")
 plt.show()
