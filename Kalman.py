@@ -49,7 +49,7 @@ class KalmanFilter1D:
         self.P = self.P + Q
 
         # --- NORMAL KALMAN UPDATE ---
-        K = self.P  * 2/ (self.P + R)
+        K = self.P / (self.P + R)
         self.x = self.x + K * innovation
         self.P = (1 - K) * self.P
 
