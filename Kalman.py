@@ -1,6 +1,8 @@
 from statistics import NormalDist
-import random
 import matplotlib.pyplot as plt
+import math
+
+import random
 
 class Limelight:
     def __init__(self):
@@ -8,71 +10,56 @@ class Limelight:
         self.sd = 10
         self.sdEstimate = self.sd
         self.reading = self.actual
+
     def setActual(self, actual):
         self.actual = actual
-        self.sd = actual/5
+        self.sd = actual / 5
+
     def update(self):
         self.reading = self.sd * 2 * (0.5 - random.random()) + self.actual
-        self.sdEstimate = self.reading / 5
+        self.sdEstimate = abs(self.reading) / 5
 
-class Kalman:
-    def __init__(self): 
-        self.pn = 100 #pinpoint num
-        self.e = 0 #limelight pinpoint error
-        self.z = 0 # z score
-        self.area = 1 #area under curve
-        self.d = 1 #pp drift aka weighting of limelight
-        self.limelight = Limelight()
 
-    def predict(self):
-        d = 1
-        ln = self.limelight.reading  
-        self.z = abs(self.pn - ln)/(2 * self.limelight.sdEstimate)
-        deltaA = self.area
-        self.area = d * pow((NormalDist().cdf(self.z) - 0.5),1)
-        deltaA = abs(pow(deltaA,2) - pow(self.area,2))
-        if (deltaA < 0.68):
-            deltaA = 0
-        self.d = self.d + self.area + deltaA
-        print(self.d)
-        if self.d < 0:
-            self.d = 0
-        if self.d > 1:
-            self.d = 1
-    
-    def update(self):
-        p = 1
-        LL = self.limelight
-        self.pn = (self.pn * (1-self.d)) + (LL.reading * self.d)
-        self.d = ((1 - self.d) * abs(self.d)) * p
-        LL.update()
+class KalmanFilter1D:
+    def __init__(self, initial_estimate=0, initial_uncertainty=1000):
+        self.x = initial_estimate
+        self.P = initial_uncertainty
 
-# Create data
-x = []
-p = []
-l = []
+    def update(self, measurement, measurement_sd):
+        R = measurement_sd ** 2
 
-kalman = Kalman()
-for i in range (0,100):
-    print("------")
-    print(i)
-    kalman.predict()
-    kalman.update()
-    x.append(i)
-    l.append(kalman.limelight.reading)
-    p.append(kalman.pn)
-    plt.scatter(x,l,color = "red")
-    plt.scatter(x,p,color = "blue")
-    print(f"Weighting {kalman.d}")
-    print(f"Limelight reading {kalman.limelight.reading}")
-    print(f"Pinpoint Estimate {kalman.pn}")
-    if i == 40:
-        kalman.limelight.setActual(130)
-        print("TELEPORT!!!")
-    if i == 60:
-        kalman.limelight.setActual(30)
-        print("TELEPORT!!!")
-    if i == 80:
-        kalman.limelight.setActual(90)
-        print("TELEPORT!!!")
+        innovation = measurement - self.x
+        S = self.P + R
+
+        # --- TELEPORT / OUTLIER DETECTION ---
+        threshold = 3  # ~99.7% confidence (3-sigma rule)
+
+        if abs(innovation) > threshold * math.sqrt(S):
+            # Option A: hard reset (fastest recovery)
+            self.x = measurement
+            self.P = R
+            return self.x
+
+        # --- NORMAL KALMAN UPDATE ---
+        K = self.P / (self.P + R)
+        self.x = self.x + K * innovation
+        self.P = (1 - K) * self.P
+
+        return self.x
+
+
+# Simulation
+limelight = Limelight()
+kf = KalmanFilter1D()
+
+for i in range(150):
+    limelight.update()
+    estimate = kf.update(limelight.reading, limelight.sdEstimate)
+    plt.scatter(i,limelight.reading,color = "red")
+    plt.scatter(i,estimate,color = "blue")
+    print(f"Measured: {limelight.reading:.2f}, Estimate: {estimate:.2f}, Actual: {limelight.actual}")
+    if i == 50:
+        limelight.setActual(140)
+    if i == 100:
+        limelight.setActual(90)
 plt.show()
