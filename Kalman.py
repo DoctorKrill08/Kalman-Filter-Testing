@@ -25,13 +25,13 @@ class Kalman:
         self.limelight = Limelight()
 
     def predict(self):
-        d = 3.5
+        d = 1
         ln = self.limelight.reading  
         self.z = abs(self.pn - ln)/(2 * self.limelight.sdEstimate)
         deltaA = self.area
-        self.area = d * pow((NormalDist().cdf(self.z) - 0.5),2)
-        deltaA = abs(deltaA - self.area)
-        if (deltaA < 0.34):
+        self.area = d * pow((NormalDist().cdf(self.z) - 0.5),1)
+        deltaA = abs(pow(deltaA,2) - pow(self.area,2))
+        if (deltaA < 0.68):
             deltaA = 0
         self.d = self.d + self.area + deltaA
         print(self.d)
@@ -41,7 +41,7 @@ class Kalman:
             self.d = 1
     
     def update(self):
-        p = .5
+        p = 1
         LL = self.limelight
         self.pn = (self.pn * (1-self.d)) + (LL.reading * self.d)
         self.d = ((1 - self.d) * abs(self.d)) * p
@@ -66,7 +66,7 @@ for i in range (0,100):
     print(f"Weighting {kalman.d}")
     print(f"Limelight reading {kalman.limelight.reading}")
     print(f"Pinpoint Estimate {kalman.pn}")
-    if i == 30:
+    if i == 40:
         kalman.limelight.setActual(130)
         print("TELEPORT!!!")
     if i == 60:
