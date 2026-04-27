@@ -35,9 +35,9 @@ class KalmanFilter1D:
     def two_step_verification(self,measurement, measurement_sd):
         result = False
         if (measurement > self.prev_measurement):
-            result = self.prev_measurement > measurement - (1.5 * measurement_sd)
+            result = (self.prev_measurement > measurement - (1.5 * measurement_sd)) and (self.prev_measurement + measurement)/ 2 <  self.prev_measurement + (1.5 * measurement_sd)
         else:
-            result = measurement > self.prev_measurement - (1.5 * self.prev_sd)
+            result = measurement > self.prev_measurement - (1.5 * self.prev_sd) and (self.prev_measurement + measurement)/ 2 <  measurement + (1.5 * self.prev_sd)
         self.prev_x = self.x
         self.prev_sd = measurement_sd
         self.prev_measurement = measurement
@@ -53,10 +53,10 @@ class KalmanFilter1D:
         
 
         innovation = measurement - self.x
-
         z_score_of_error = abs(innovation) / measurement_sd
+
         # < 2 z-score -> nada. difference from 2
-        Q = (z_score_of_error ** 3) * (0.0001 * abs(innovation)) + (0.02 * abs(self.prev_x - self.x))
+        Q = (z_score_of_error ** 4) * (0.00015 * abs(innovation)) + (0.1 * abs(self.prev_x - self.x))
         self.uncertainty = self.uncertainty + Q
         if (self.uncertainty > 1):
             self.uncertainty = 1
@@ -72,7 +72,7 @@ class KalmanFilter1D:
         self.x = self.x + K * innovation
         #4 Sample rule (it should take about 4 samples from a spike to reach mean)
         #Therefore deterioation should be
-        self.uncertainty = self.uncertainty / 1.4
+        self.uncertainty = self.uncertainty / 1.2
 
         return self.x
 
