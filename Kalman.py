@@ -28,6 +28,7 @@ class KalmanFilter1D:
         self.x = initial_estimate
         self.uncertainty = initial_uncertainty
         self.sd = 1
+        self.prev_x = 0
         self.prev_measurement = 0
         self.prev_sd = 1
 
@@ -37,6 +38,7 @@ class KalmanFilter1D:
             result = self.prev_measurement > measurement - (1.5 * measurement_sd)
         else:
             result = measurement > self.prev_measurement - (1.5 * self.prev_sd)
+        self.prev_x = self.x
         self.prev_sd = measurement_sd
         self.prev_measurement = measurement
         return result
@@ -54,7 +56,7 @@ class KalmanFilter1D:
 
         z_score_of_error = abs(innovation) / measurement_sd
         # < 2 z-score -> nada. difference from 2
-        Q = (z_score_of_error ** 2) * (0.0005 * abs(innovation))
+        Q = (z_score_of_error ** 2) * (0.0003 * abs(innovation)) + (0.02 * abs(self.prev_x - self.x))
         self.uncertainty = self.uncertainty + Q
         if (self.uncertainty > 1):
             self.uncertainty = 1
@@ -77,7 +79,7 @@ class KalmanFilter1D:
 limelight = Limelight()
 kf = KalmanFilter1D()
 
-for i in range(250):
+for i in range(350):
     limelight.update()
     estimate = kf.update(limelight.reading, limelight.sdEstimate)
     plt.scatter(i,limelight.reading,color = "red")
@@ -88,4 +90,6 @@ for i in range(250):
         limelight.setActual(140)
     if i == 100:
         limelight.setActual(90)
+    if i == 150:
+          limelight.setActual(80)  
 plt.show()
