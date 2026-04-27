@@ -28,6 +28,7 @@ class KalmanFilter1D:
         self.x = initial_estimate
         self.uncertainty = initial_uncertainty
         self.sd = 1
+        self.q = 0
         self.prev_x = 0
         self.prev_measurement = 0
         self.prev_sd = 1
@@ -55,12 +56,14 @@ class KalmanFilter1D:
         innovation = measurement - self.x
         z_score_of_error = abs(innovation) / measurement_sd
 
+        prev_q = self.q
         # < 2 z-score -> nada. difference from 2
-        Q = (z_score_of_error ** 4) * (0.00015 * abs(innovation)) + (0.1 * abs(self.prev_x - self.x))
-        self.uncertainty = self.uncertainty + Q
+        self.q = (z_score_of_error ** 4) * (0.0002 * abs(innovation)) + (2.5 / measurement)
+        self.q = (self.q - prev_q) / 2
+        self.uncertainty = self.uncertainty + self.q
         if (self.uncertainty > 1):
             self.uncertainty = 1
-        print(Q)
+        print(self.q)
 
         # --- NORMAL KALMAN UPDATE ---
         # K = self.uncertainty / (self.uncertainty + variance_measure)
