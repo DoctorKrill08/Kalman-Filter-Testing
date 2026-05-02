@@ -58,15 +58,13 @@ class KalmanFilter1D:
 
         prev_q = self.q
         # < 2 z-score -> nada. difference from 2
-        self.q = (z_score_of_error ** 4) * (0.0002 * abs(innovation)) + (2.5 / measurement)
-        self.q = (self.q - prev_q) / 2
+        self.q = (z_score_of_error ** 4) * (0.0004 * abs(innovation)) + (2.5 / measurement)
+        self.q = abs(abs(self.q) - abs(prev_q)) / 25
         self.uncertainty = self.uncertainty + self.q
         if (self.uncertainty > 1):
             self.uncertainty = 1
         print(self.q)
 
-        # --- NORMAL KALMAN UPDATE ---
-        # K = self.uncertainty / (self.uncertainty + variance_measure)
         # Custom Kalman
         K = self.uncertainty
         if (K < 0.1):
